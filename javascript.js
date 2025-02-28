@@ -23,7 +23,6 @@ function initMap() {
 }
 
 // Load movie data from data.json
-// Load movie data from data.json
 async function loadMovieData() {
     try {
       console.log("Loading movie data");
@@ -95,13 +94,14 @@ function clearMarkers() {
 
 function setupSearch(movieData) {
     const searchInput = document.getElementById('search');
+    const searchButton = document.getElementById('searchButton'); // Ensure this exists in HTML
     const autocompleteList = document.createElement('div');
     autocompleteList.className = 'autocomplete-items';
     searchInput.parentNode.appendChild(autocompleteList);
   
-    // Add input event listener for search
-    searchInput.addEventListener('input', function () {
-      const searchText = this.value.trim().toLowerCase(); // Get search text and normalize it
+    // Function to perform search
+    const performSearch = () => {
+      const searchText = searchInput.value.trim().toLowerCase(); // Get search text
       autocompleteList.innerHTML = ''; // Clear previous autocomplete results
   
       // If search field is empty, show all markers and hide autocomplete
@@ -146,7 +146,19 @@ function setupSearch(movieData) {
       });
   
       autocompleteList.style.display = 'block'; // Show autocomplete list
-    });
+    };
+  
+    // Add input event listener for search
+    searchInput.addEventListener('input', performSearch);
+  
+    // Add click event listener for search button
+    if (searchButton) {  // Ensure the button exists before adding event listener
+        searchButton.addEventListener('click', () => {
+            performSearch(); // Perform search when button is clicked
+        });
+    } else {
+        console.error("Search button not found! Check your HTML.");
+    }
   
     // Hide autocomplete when clicking outside
     document.addEventListener('click', (e) => {
@@ -154,6 +166,6 @@ function setupSearch(movieData) {
         autocompleteList.style.display = 'none'; // Hide autocomplete
       }
     });
-  }
-  
+}
+
   
