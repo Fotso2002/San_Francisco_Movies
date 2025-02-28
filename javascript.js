@@ -44,50 +44,55 @@ async function loadMovieData() {
 }
 
 function addMarkersToMap(movies) {
-  clearMarkers();
-  movies.forEach(movie => {
-    // Check if the movie has valid location data
-    if (movie.location && movie.lat && movie.lng) {
-      const position = {
-        lat: parseFloat(movie.lat),
-        lng: parseFloat(movie.lng)
-      };
-      
-      // Create a marker
-      const marker = new google.maps.Marker({
-        position: position,
-        map: map,
-        title: movie.title
-      });
-      
-      // Add info window with movie details
-      const infoContent = `
-        <div class="info-window">
-          <h5>${movie.title}</h5>
-          <p><strong>Year:</strong> ${movie.release_year || 'N/A'}</p>
-          <p><strong>Location:</strong> ${movie.location || 'N/A'}</p>
-          <p><strong>Director:</strong> ${movie.director || 'N/A'}</p>
-          <p><strong>Distribution:</strong> ${movie.distribution || 'N/A'}</p>
-          <p><strong>Production:</strong> ${movie.production_company || 'N/A'}</p>
-          <p><strong>Writer:</strong> ${movie.writer || 'N/A'}</p>
-          <p><strong>Cast:</strong> ${movie.actor_1 || 'N/A'}${movie.actor_2 ? ', ' + movie.actor_2 : ''}${movie.actor_3 ? ', ' + movie.actor_3 : ''}</p>
-        </div>
-      `;
-      
-      const infoWindow = new google.maps.InfoWindow({
-        content: infoContent
-      });
-      
-      // Add click event to show info window
-      marker.addListener('click', () => {
-        infoWindow.open(map, marker);
-      });
-      
-      // Store marker reference
-      markers.push(marker);
-    }
-  });
-}
+    clearMarkers(); // Clear existing markers
+    let currentInfoWindow = null; // Track the currently open info window
+  
+    movies.forEach(movie => {
+      if (movie.location && movie.lat && movie.lng) {
+        const position = { lat: parseFloat(movie.lat), lng: parseFloat(movie.lng) };
+        console.log(`Adding marker for: ${movie.title} at (${position.lat}, ${position.lng})`);
+  
+        const marker = new google.maps.Marker({ position, map, title: movie.title });
+  
+        // Info window content
+        const infoContent = `
+          <div class="info-window">
+            <h5>${movie.title}</h5>
+            <p><strong>Year:</strong> ${movie.release_year || 'N/A'}</p>
+            <p><strong>Location:</strong> ${movie.location || 'N/A'}</p>
+            <p><strong>Director:</strong> ${movie.director || 'N/A'}</p>
+            <p><strong>Cast:</strong> ${[movie.actor_1, movie.actor_2, movie.actor_3].filter(Boolean).join(', ') || 'N/A'}</p>
+          </div>
+        `;
+  
+        const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+  
+        // Click event to open info window
+        marker.addListener('click', () => {
+          if (currentInfoWindow) currentInfoWindow.close(); // Close the previous info window
+          infoWindow.open(map, marker);
+          currentInfoWindow = infoWindow; // Update the currently open info window
+        });
+  
+        // Hover event to open info window
+        marker.addListener('mouseover', () => {
+          if (currentInfoWindow) currentInfoWindow.close(); // Close the previous info window
+          infoWindow.open(map, marker);
+          currentInfoWindow = infoWindow; // Update the currently open info window
+        });
+  
+        // Hover out event to close info window
+        marker.addListener('mouseout', () => {
+          infoWindow.close();
+          currentInfoWindow = null; // Reset the currently open info window
+        });
+  
+        markers.push(marker); // Store marker reference
+      } else {
+        console.warn(`Skipping invalid movie data: ${movie.title}`);
+      }
+    });
+  }
 
 // Clear all markers from the map
 function clearMarkers() {

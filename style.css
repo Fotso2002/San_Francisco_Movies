@@ -111,3 +111,26 @@ body {
       font-size: 0.9rem;
     }
   }
+  /* Custom InfoWindow Styling */
+.gm-style .gm-style-iw {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+  }
+  
+  .info-window {
+    font-family: Arial, sans-serif;
+  }
+  
+  .info-window h5 {
+    color: #2a5298;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+  }
+  
+  .info-window p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+  }
