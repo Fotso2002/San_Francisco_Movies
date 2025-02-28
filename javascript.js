@@ -4,8 +4,10 @@ let markers = [];
 let movieData = [];
 let autocompleteList = document.createElement('div');
 
-// Initialize the map
+// Initialize the map - This function will be called by the Google Maps API
 function initMap() {
+  console.log("Map initialization started");
+  
   // Center the map on San Francisco coordinates
   const sanFrancisco = { lat: 37.7749, lng: -122.4194 };
   
@@ -14,24 +16,25 @@ function initMap() {
     zoom: 12,
     center: sanFrancisco,
   });
+  
+  console.log("Map created");
 
-  // Load movie data
   loadMovieData();
 
-  // Set up search functionality
   setupSearch();
 }
 
 // Load movie data from data.json
 async function loadMovieData() {
   try {
+    console.log("Loading movie data");
     const response = await fetch('data.json');
     if (!response.ok) {
       throw new Error('Failed to load movie data');
     }
     
     movieData = await response.json();
-    // After loading data, add markers to the map
+    console.log(`Loaded ${movieData.length} movie entries`);
     addMarkersToMap(movieData);
     
   } catch (error) {
@@ -40,18 +43,14 @@ async function loadMovieData() {
   }
 }
 
-// Add markers to the map for each movie location
 function addMarkersToMap(movies) {
-  // Clear existing markers
   clearMarkers();
-  
-  // Add new markers
   movies.forEach(movie => {
     // Check if the movie has valid location data
-    if (movie.locations && movie.latitude && movie.longitude) {
+    if (movie.location && movie.lat && movie.lng) {
       const position = {
-        lat: parseFloat(movie.latitude),
-        lng: parseFloat(movie.longitude)
+        lat: parseFloat(movie.lat),
+        lng: parseFloat(movie.lng)
       };
       
       // Create a marker
@@ -65,10 +64,13 @@ function addMarkersToMap(movies) {
       const infoContent = `
         <div class="info-window">
           <h5>${movie.title}</h5>
-          <p><strong>Year:</strong> ${movie.release_year}</p>
-          <p><strong>Location:</strong> ${movie.locations}</p>
+          <p><strong>Year:</strong> ${movie.release_year || 'N/A'}</p>
+          <p><strong>Location:</strong> ${movie.location || 'N/A'}</p>
           <p><strong>Director:</strong> ${movie.director || 'N/A'}</p>
-          <p><strong>Actors:</strong> ${movie.actor_1 || 'N/A'}${movie.actor_2 ? ', ' + movie.actor_2 : ''}${movie.actor_3 ? ', ' + movie.actor_3 : ''}</p>
+          <p><strong>Distribution:</strong> ${movie.distribution || 'N/A'}</p>
+          <p><strong>Production:</strong> ${movie.production_company || 'N/A'}</p>
+          <p><strong>Writer:</strong> ${movie.writer || 'N/A'}</p>
+          <p><strong>Cast:</strong> ${movie.actor_1 || 'N/A'}${movie.actor_2 ? ', ' + movie.actor_2 : ''}${movie.actor_3 ? ', ' + movie.actor_3 : ''}</p>
         </div>
       `;
       
@@ -142,10 +144,10 @@ function setupSearch() {
           addMarkersToMap(selectedMovies);
           
           // Center map on first result
-          if (selectedMovies.length > 0 && selectedMovies[0].latitude && selectedMovies[0].longitude) {
+          if (selectedMovies.length > 0 && selectedMovies[0].lat && selectedMovies[0].lng) {
             map.setCenter({
-              lat: parseFloat(selectedMovies[0].latitude),
-              lng: parseFloat(selectedMovies[0].longitude)
+              lat: parseFloat(selectedMovies[0].lat),
+              lng: parseFloat(selectedMovies[0].lng)
             });
             map.setZoom(14);
           }
