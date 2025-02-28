@@ -1,7 +1,7 @@
 // Global variables
 let map;
 let markers = [];
-let currentInfoWindow = null; // Track the currently open info window
+let currentInfoWindow = null;
 
 // Initialize the map
 function initMap() {
