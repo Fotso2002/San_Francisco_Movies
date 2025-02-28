@@ -2,25 +2,24 @@
 let map;
 let markers = [];
 let movieData = [];
-let autocompleteList = document.createElement('div');
+let currentInfoWindow = null; // Track the currently open info window
 
-// Initialize the map - This function will be called by the Google Maps API
+// Initialize the map
 function initMap() {
   console.log("Map initialization started");
-  
+
   // Center the map on San Francisco coordinates
   const sanFrancisco = { lat: 37.7749, lng: -122.4194 };
-  
+
   // Create the map
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 12,
     center: sanFrancisco,
   });
-  
+
   console.log("Map created");
 
   loadMovieData();
-
   setupSearch();
 }
 
@@ -29,135 +28,118 @@ async function loadMovieData() {
   try {
     console.log("Loading movie data");
     const response = await fetch('data.json');
-    if (!response.ok) {
-      throw new Error('Failed to load movie data');
-    }
-    
+    if (!response.ok) throw new Error('Failed to load movie data');
+
     movieData = await response.json();
     console.log(`Loaded ${movieData.length} movie entries`);
     addMarkersToMap(movieData);
-    
+
   } catch (error) {
     console.error('Error loading movie data:', error);
     alert('Failed to load movie data. Please try again later.');
   }
 }
 
+// Add markers to the map
 function addMarkersToMap(movies) {
-    clearMarkers(); // Clear existing markers
-    let currentInfoWindow = null; // Track the currently open info window
-  
-    movies.forEach(movie => {
-      if (movie.location && movie.lat && movie.lng) {
-        const position = { lat: parseFloat(movie.lat), lng: parseFloat(movie.lng) };
-        console.log(`Adding marker for: ${movie.title} at (${position.lat}, ${position.lng})`);
-  
-        const marker = new google.maps.Marker({ position, map, title: movie.title });
-  
-        // Info window content
-        const infoContent = `
-          <div class="info-window">
-            <h5>${movie.title}</h5>
-            <p><strong>Year:</strong> ${movie.release_year || 'N/A'}</p>
-            <p><strong>Location:</strong> ${movie.location || 'N/A'}</p>
-            <p><strong>Director:</strong> ${movie.director || 'N/A'}</p>
-            <p><strong>Cast:</strong> ${[movie.actor_1, movie.actor_2, movie.actor_3].filter(Boolean).join(', ') || 'N/A'}</p>
-          </div>
-        `;
-  
-        const infoWindow = new google.maps.InfoWindow({ content: infoContent });
-  
-        // Click event to open info window
-        marker.addListener('click', () => {
-          if (currentInfoWindow) currentInfoWindow.close(); // Close the previous info window
-          infoWindow.open(map, marker);
-          currentInfoWindow = infoWindow; // Update the currently open info window
-        });
-  
-        // Hover event to open info window
-        marker.addListener('mouseover', () => {
-          if (currentInfoWindow) currentInfoWindow.close(); // Close the previous info window
-          infoWindow.open(map, marker);
-          currentInfoWindow = infoWindow; // Update the currently open info window
-        });
-  
-        // Hover out event to close info window
-        marker.addListener('mouseout', () => {
-          infoWindow.close();
-          currentInfoWindow = null; // Reset the currently open info window
-        });
-  
-        markers.push(marker); // Store marker reference
-      } else {
-        console.warn(`Skipping invalid movie data: ${movie.title}`);
-      }
-    });
-  }
+  clearMarkers(); // Clear existing markers
 
-// Clear all markers from the map
-function clearMarkers() {
-  markers.forEach(marker => marker.setMap(null));
-  markers = [];
+  movies.forEach(movie => {
+    if (movie.location && movie.lat && movie.lng) {
+      const position = { lat: parseFloat(movie.lat), lng: parseFloat(movie.lng) };
+      console.log(`Adding marker for: ${movie.title} at (${position.lat}, ${position.lng})`);
+
+      // Create the marker
+      const marker = new google.maps.Marker({
+        position: position,
+        map: map,
+        title: movie.title,
+      });
+
+      // Info window content (styled with Bootstrap classes)
+      const infoContent = `
+        <div class="info-window">
+          <h5>${movie.title}</h5>
+          <p><strong>Year:</strong> ${movie.release_year || 'N/A'}</p>
+          <p><strong>Location:</strong> ${movie.location || 'N/A'}</p>
+          <p><strong>Director:</strong> ${movie.director || 'N/A'}</p>
+          <p><strong>Cast:</strong> ${[movie.actor_1, movie.actor_2, movie.actor_3].filter(Boolean).join(', ') || 'N/A'}</p>
+        </div>
+      `;
+
+      // Create the info window
+      const infoWindow = new google.maps.InfoWindow({
+        content: infoContent,
+      });
+
+      // Hover event to open info window
+      marker.addListener('mouseover', () => {
+        if (currentInfoWindow) currentInfoWindow.close(); // Close the previous info window
+        infoWindow.open(map, marker);
+        currentInfoWindow = infoWindow; // Update the currently open info window
+      });
+
+      // Hover out event to close info window
+      marker.addListener('mouseout', () => {
+        infoWindow.close();
+        currentInfoWindow = null; // Reset the currently open info window
+      });
+
+      // Click event to center the map on the marker
+      marker.addListener('click', () => {
+        map.setCenter(marker.getPosition());
+        map.setZoom(14);
+      });
+
+      markers.push(marker); // Store marker reference
+    } else {
+      console.warn(`Skipping invalid movie data: ${movie.title}`);
+    }
+  });
 }
 
-// Set up search functionality with autocomplete
+// Clear all markers
+// function clearMarkers() {
+//   markers.forEach(marker => marker.setMap(null));
+//   markers = [];
+// }
+
+// Set up search functionality
 function setupSearch() {
   const searchInput = document.getElementById('search');
-  
-  // Create and style autocomplete container
+  const autocompleteList = document.createElement('div');
   autocompleteList.className = 'autocomplete-items';
   searchInput.parentNode.appendChild(autocompleteList);
-  
+
   // Add input event listener for search
   searchInput.addEventListener('input', function() {
     const searchText = this.value.toLowerCase();
-    
-    // Clear previous autocomplete results
     autocompleteList.innerHTML = '';
-    
-    // If search field is empty, show all markers
+
     if (searchText === '') {
       addMarkersToMap(movieData);
       autocompleteList.style.display = 'none';
       return;
     }
-    
-    // Filter movies based on search text
+
     const matchedMovies = movieData.filter(movie => 
       movie.title && movie.title.toLowerCase().includes(searchText)
     );
-    
-    // Get unique movie titles for autocomplete
     const uniqueTitles = [...new Set(matchedMovies.map(movie => movie.title))];
-    
-    // Display autocomplete suggestions
+
     if (uniqueTitles.length > 0) {
       autocompleteList.style.display = 'block';
-      
-      // Limit to first 5 suggestions for better UX
       uniqueTitles.slice(0, 5).forEach(title => {
         const item = document.createElement('div');
-        item.innerHTML = title;
-        item.addEventListener('click', function() {
+        item.textContent = title;
+        item.addEventListener('click', () => {
           searchInput.value = title;
-          
-          // Filter markers to show only the selected movie
-          const selectedMovies = movieData.filter(movie => 
-            movie.title === title
-          );
-          
+          const selectedMovies = movieData.filter(movie => movie.title === title);
           addMarkersToMap(selectedMovies);
-          
-          // Center map on first result
           if (selectedMovies.length > 0 && selectedMovies[0].lat && selectedMovies[0].lng) {
-            map.setCenter({
-              lat: parseFloat(selectedMovies[0].lat),
-              lng: parseFloat(selectedMovies[0].lng)
-            });
+            map.setCenter({ lat: parseFloat(selectedMovies[0].lat), lng: parseFloat(selectedMovies[0].lng) });
             map.setZoom(14);
           }
-          
-          // Hide autocomplete list
           autocompleteList.style.display = 'none';
         });
         autocompleteList.appendChild(item);
@@ -165,15 +147,12 @@ function setupSearch() {
     } else {
       autocompleteList.style.display = 'none';
     }
-    
-    // Update markers on map
+
     addMarkersToMap(matchedMovies);
   });
-  
+
   // Hide autocomplete when clicking elsewhere
-  document.addEventListener('click', function(e) {
-    if (e.target !== searchInput) {
-      autocompleteList.style.display = 'none';
-    }
+  document.addEventListener('click', (e) => {
+    if (e.target !== searchInput) autocompleteList.style.display = 'none';
   });
 }
