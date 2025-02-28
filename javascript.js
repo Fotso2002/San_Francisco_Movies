@@ -1,7 +1,6 @@
 // Global variables
 let map;
 let markers = [];
-let movieData = [];
 let currentInfoWindow = null; // Track the currently open info window
 
 // Initialize the map
@@ -19,8 +18,8 @@ function initMap() {
 
   console.log("Map created");
 
+  // Load movie data from the JSON file
   loadMovieData();
-  setupSearch();
 }
 
 // Load movie data from data.json
@@ -30,7 +29,7 @@ async function loadMovieData() {
     const response = await fetch('data.json');
     if (!response.ok) throw new Error('Failed to load movie data');
 
-    movieData = await response.json();
+    const movieData = await response.json();
     console.log(`Loaded ${movieData.length} movie entries`);
     addMarkersToMap(movieData);
 
@@ -40,69 +39,56 @@ async function loadMovieData() {
   }
 }
 
-// Add markers to the map
 function addMarkersToMap(movies) {
-  clearMarkers(); // Clear existing markers
+    clearMarkers(); // Clear old markers
+  
+    movies.forEach(movie => {
+        const lat = parseFloat(movie.lat);
+        const lng = parseFloat(movie.lng);
+      
+        if (!isNaN(lat) && !isNaN(lng)) {
+            const position = { lat, lng };
+            console.log(`Adding marker for: ${movie.title} at (${lat}, ${lng})`);
+            
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map, // Ensure map is valid
+                title: movie.title,
+            });
 
-  movies.forEach(movie => {
-    if (movie.location && movie.lat && movie.lng) {
-      const position = { lat: parseFloat(movie.lat), lng: parseFloat(movie.lng) };
-      console.log(`Adding marker for: ${movie.title} at (${position.lat}, ${position.lng})`);
+            // Create info window content
+            const infoContent = `
+                <div class="info-window">
+                    <h5>${movie.title}</h5>
+                    <p><strong>Year:</strong> ${movie.release_year || 'N/A'}</p>
+                    <p><strong>Location:</strong> ${movie.location || 'N/A'}</p>
+                    <p><strong>Director:</strong> ${movie.director || 'N/A'}</p>
+                    <p><strong>Cast:</strong> ${[movie.actor_1, movie.actor_2, movie.actor_3].filter(Boolean).join(', ') || 'N/A'}</p>
+                </div>
+            `;
 
-      // Create the marker
-      const marker = new google.maps.Marker({
-        position: position,
-        map: map,
-        title: movie.title,
-      });
+            const infoWindow = new google.maps.InfoWindow({ content: infoContent });
 
-      // Info window content (styled with Bootstrap classes)
-      const infoContent = `
-        <div class="info-window">
-          <h5>${movie.title}</h5>
-          <p><strong>Year:</strong> ${movie.release_year || 'N/A'}</p>
-          <p><strong>Location:</strong> ${movie.location || 'N/A'}</p>
-          <p><strong>Director:</strong> ${movie.director || 'N/A'}</p>
-          <p><strong>Cast:</strong> ${[movie.actor_1, movie.actor_2, movie.actor_3].filter(Boolean).join(', ') || 'N/A'}</p>
-        </div>
-      `;
+            // Click to open info window
+            marker.addListener("click", () => {
+                if (currentInfoWindow) currentInfoWindow.close(); // Close previous
+                infoWindow.open(map, marker);
+                currentInfoWindow = infoWindow; // Store reference
+            });
 
-      // Create the info window
-      const infoWindow = new google.maps.InfoWindow({
-        content: infoContent,
-      });
-
-      // Hover event to open info window
-      marker.addListener('mouseover', () => {
-        if (currentInfoWindow) currentInfoWindow.close(); // Close the previous info window
-        infoWindow.open(map, marker);
-        currentInfoWindow = infoWindow; // Update the currently open info window
-      });
-
-      // Hover out event to close info window
-      marker.addListener('mouseout', () => {
-        infoWindow.close();
-        currentInfoWindow = null; // Reset the currently open info window
-      });
-
-      // Click event to center the map on the marker
-      marker.addListener('click', () => {
-        map.setCenter(marker.getPosition());
-        map.setZoom(14);
-      });
-
-      markers.push(marker); // Store marker reference
-    } else {
-      console.warn(`Skipping invalid movie data: ${movie.title}`);
-    }
-  });
+            markers.push(marker);
+        } else {
+            console.warn(`Skipping movie: ${movie.title} (Invalid coordinates)`);
+        }
+    });
 }
 
-// Clear all markers
-// function clearMarkers() {
-//   markers.forEach(marker => marker.setMap(null));
-//   markers = [];
-// }
+// Function to clear existing markers
+function clearMarkers() {
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+}
+
 
 // Set up search functionality
 function setupSearch() {
