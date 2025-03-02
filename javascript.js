@@ -94,7 +94,7 @@ function clearMarkers() {
 
 function setupSearch(movieData) {
     const searchInput = document.getElementById('search');
-    const searchButton = document.getElementById('searchButton'); // Ensure this exists in HTML
+    const searchButton = document.getElementById('searchButton'); 
     const autocompleteList = document.createElement('div');
     autocompleteList.className = 'autocomplete-items';
     searchInput.parentNode.appendChild(autocompleteList);
@@ -106,13 +106,15 @@ function setupSearch(movieData) {
 
     // Function to perform search
     const performSearch = () => {
-        const searchText = searchInput.value.trim().toLowerCase(); // Get search text
+        const searchText = searchInput.value.trim().toLowerCase(); 
+        console.log("Search text:", searchText); // Debugging log
+
         autocompleteList.innerHTML = ''; // Clear previous autocomplete results
 
-        // If search field is empty, show all markers and hide autocomplete
         if (!searchText) {
+            console.log("Search is empty, showing all markers.");
             addMarkersToMap(movieData); // Show all markers
-            autocompleteList.style.display = 'none'; // Hide autocomplete
+            autocompleteList.style.display = 'none'; 
             return;
         }
 
@@ -120,61 +122,66 @@ function setupSearch(movieData) {
         const matchedMovies = movieData.filter(movie => 
             movie.title && movie.title.toLowerCase().includes(searchText)
         );
+        console.log("Matched movies:", matchedMovies); // Debugging log
 
-        // If no matches, hide autocomplete
         if (matchedMovies.length === 0) {
+            console.log("No matching movies found.");
             autocompleteList.style.display = 'none';
+            alert("No movies found with that title.");
             return;
         }
 
-        // Show up to 5 unique movie titles in autocomplete
-        matchedMovies.slice(0, 5).forEach(movie => {
+        console.log("Updating map with matched movies.");
+        addMarkersToMap(matchedMovies); // Show all matched movies
+
+        // Display autocomplete list with unique titles
+        const uniqueTitles = [...new Set(matchedMovies.map(m => m.title))]; // Remove duplicate titles
+        autocompleteList.innerHTML = ''; 
+        uniqueTitles.slice(0, 5).forEach(title => {
             const item = document.createElement('div');
-            item.textContent = movie.title;
+            item.textContent = title;
             item.classList.add('autocomplete-item');
 
-            // Add click event to select a movie
             item.addEventListener('click', () => {
-                searchInput.value = movie.title; // Update search input with selected title
-                addMarkersToMap([movie]); // Show only the selected movie's marker
+                searchInput.value = title; 
 
-                // Center the map on the selected movie's location
-                if (movie.lat && movie.lng) {
-                    map.setCenter({ lat: parseFloat(movie.lat), lng: parseFloat(movie.lng) });
-                    map.setZoom(14); // Zoom in for better visibility
-                }
+                // Filter movies again for selected title (to get all locations)
+                const selectedMovies = movieData.filter(m => m.title.toLowerCase() === title.toLowerCase());
+                console.log("Selected movie locations:", selectedMovies);
+                addMarkersToMap(selectedMovies); // Show all markers for this title
 
-                autocompleteList.style.display = 'none'; // Hide autocomplete after selection
+                // Adjust map to fit all locations
+                const bounds = new google.maps.LatLngBounds();
+                selectedMovies.forEach(m => bounds.extend(new google.maps.LatLng(m.lat, m.lng)));
+                map.fitBounds(bounds);
+
+                autocompleteList.style.display = 'none'; 
             });
 
-            autocompleteList.appendChild(item); // Add item to autocomplete list
+            autocompleteList.appendChild(item);
         });
 
-        autocompleteList.style.display = 'block'; // Show autocomplete list
+        autocompleteList.style.display = 'block'; 
     };
 
-    // Add input event listener for search
+    // Input event for live search
     searchInput.addEventListener('input', performSearch);
 
-    // Ensure button exists before adding event listener
+    // Search button click event
     searchButton.addEventListener('click', () => {
-        console.log("Search button clicked!"); // Debugging log
-        performSearch(); // Perform search when button is clicked
+        console.log("Search button clicked! Performing search.");
+        performSearch(); 
     });
 
     // Hide autocomplete when clicking outside
     document.addEventListener('click', (e) => {
         if (!searchInput.contains(e.target) && !autocompleteList.contains(e.target)) {
-            autocompleteList.style.display = 'none'; // Hide autocomplete
+            autocompleteList.style.display = 'none'; 
         }
     });
 }
 
-// Ensure the script only runs when the DOM is fully loaded
-document.addEventListener("DOMContentLoaded", function () {
-    console.log("DOM fully loaded. Setting up search.");
-    loadMovieData(); // Ensure movie data is loaded before setting up search
-});
+
 
 
   
